@@ -20,6 +20,8 @@ public class KinmuHyoExportServlet extends HttpServlet {
     private KintaiRecDao kintaiRecDao = new KintaiRecDao();
     private EmpDao empDao = new EmpDao();
 
+    private static final String[] WEEKDAYS = {"日", "月", "火", "水", "木", "金", "土"};
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -38,33 +40,25 @@ public class KinmuHyoExportServlet extends HttpServlet {
 
         UserBean loginUser = (UserBean) session.getAttribute("user");
 
-        // 対象月取得
         String startMonth = request.getParameter("startMonth");
         String endMonth = request.getParameter("endMonth");
 
         if (startMonth == null || startMonth.isEmpty()) {
             startMonth = YearMonth.now().toString();
         }
-
         if (endMonth == null || endMonth.isEmpty()) {
             endMonth = YearMonth.now().toString();
         }
-        
-        // アクション取得
+
         String action = request.getParameter("action");
         if (action == null || action.isEmpty()) {
             action = "download";
         }
 
-        // 対象従業員ID
         String empId = request.getParameter("empId");
-        
-        // empIdが空の場合はログインユーザーのIDを使う
         if (empId == null || empId.trim().isEmpty()) {
             empId = loginUser.getEmpId();
         }
-
-        // 権限チェック — 一般社員は自分のみ
         if (loginUser.getRoleId() != 1) {
             empId = loginUser.getEmpId();
         }
@@ -76,20 +70,18 @@ public class KinmuHyoExportServlet extends HttpServlet {
             LocalDate monthStart = startYm.atDay(1);
             LocalDate monthEnd = endYm.atEndOfMonth();
 
-            // 従業員情報取得
             EmpBean emp = empDao.findByEmpId(empId);
             if (emp == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, "従業員が見つかりません");
                 return;
             }
 
-            // 勤怠データ取得 (শুরু থেকে শেষ তারিখের সব ডেটা একসাথে নিয়ে আসা হচ্ছে)
             List<String> empIds = List.of(empId);
             List<KintaiRecBean> records = kintaiRecDao.getKintaiRecords(
                 empIds, null, null, monthStart, monthEnd, 0);
 
+            // ===== プレビュー =====
             if ("preview".equals(action)) {
-                // JSP-তে ডেটা পাঠিয়ে প্রিভিউ দেখানো হচ্ছে
                 request.setAttribute("emp", emp);
                 request.setAttribute("records", records);
                 request.setAttribute("startMonth", startMonth);
@@ -101,12 +93,46 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 return;
             }
 
-            // ---------------------------------------------------------
-            // এখান থেকে CSV ডাউনলোডের লজিক (যা শুরু থেকে শেষ মাস পর্যন্ত লুপ ঘুরবে)
-            // ---------------------------------------------------------
-            StringBuilder sb = new StringBuilder();
+            // ===== Excel出力（POI不要）=====
+            if ("excel".equals(action)) {
+                String xlsFilename = "勤務表_" + emp.getEmpName() + "_" +
+                        startMonth.replace("-", "") + ".xlsx";
+                String encodedXls = java.net.URLEncoder.encode(xlsFilename, "UTF-8")
+                        .replace("+", "%20");
+                response.setContentType(
+                	    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                response.setHeader("Content-Disposition",
+                        "attachment; filename*=UTF-8''" + encodedXls);
 
-            // ヘッダー情報
+                StringBuilder sbXls = new StringBuilder();
+                sbXls.append("日付,曜日,出社,始業時間,終了時間,休憩時間,勤務時間,備考\n");
+
+                for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
+                    KintaiRecBean rec = null;
+                    for (KintaiRecBean r : records) {
+                        if (r.getKintaiDate().equals(date)) { rec = r; break; }
+                    }
+                    String weekday = WEEKDAYS[date.getDayOfWeek().getValue() % 7];
+                    sbXls.append(date.getMonthValue() + "/" + String.format("%02d", date.getDayOfMonth())).append(",");
+                    sbXls.append(weekday).append(",");
+                    sbXls.append(rec != null && rec.getClockIn() != null ? "○" : "").append(",");
+                    sbXls.append(rec != null && rec.getClockIn() != null ? rec.getClockIn().toString().substring(0, 5) : "").append(",");
+                    sbXls.append(rec != null && rec.getClockOut() != null ? rec.getClockOut().toString().substring(0, 5) : "").append(",");
+                    sbXls.append(rec != null && rec.getClockIn() != null ? String.format("%.1f", rec.getTotalBreakMinutes() / 60.0) : "").append(",");
+                    sbXls.append(rec != null && rec.getClockIn() != null ? String.format("%.1f", rec.getActualWorkMinutes() / 60.0) : "").append(",");
+                    sbXls.append("\n");
+                }
+
+                OutputStream xlsOut = response.getOutputStream();
+                xlsOut.write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
+                xlsOut.write(sbXls.toString().getBytes("UTF-8"));
+                xlsOut.flush();
+                xlsOut.close();
+                return;
+            }
+
+            // ===== CSV出力（デフォルト）=====
+            StringBuilder sb = new StringBuilder();
             sb.append("勤務表\n");
             sb.append("対象期間," + startMonth + " 〜 " + endMonth + "\n");
             sb.append("\n");
@@ -114,18 +140,11 @@ public class KinmuHyoExportServlet extends HttpServlet {
             sb.append("フリガナ,\n");
             sb.append("氏名," + emp.getEmpName() + "\n");
             sb.append("\n");
-
-            // 明細ヘッダー
             sb.append("日付,曜日,出社,始業時間,終了時間,休憩時間,勤務時間,備考\n");
 
-            // 曜日配列
-            String[] weekdays = {"日", "月", "火", "水", "木", "金", "土"};
-
-            // রেঞ্জের শুরুর তারিখ থেকে শেষ তারিখ পর্যন্ত প্রতিদিনের লুপ
             for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
-                String weekday = weekdays[date.getDayOfWeek().getValue() % 7];
+                String weekday = WEEKDAYS[date.getDayOfWeek().getValue() % 7];
 
-                // その日の勤怠を検索
                 KintaiRecBean rec = null;
                 for (KintaiRecBean r : records) {
                     if (r.getKintaiDate().equals(date)) {
@@ -150,7 +169,6 @@ public class KinmuHyoExportServlet extends HttpServlet {
                     workTime = String.format("%.1f", rec.getActualWorkMinutes() / 60.0);
                 }
 
-                // 日付を「MM/dd」か「yyyy/MM/dd」形式で出力
                 sb.append(date.getMonthValue() + "/" + String.format("%02d", date.getDayOfMonth())).append(",");
                 sb.append(weekday).append(",");
                 sb.append(shussha).append(",");
@@ -161,7 +179,6 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 sb.append(remarks).append("\n");
             }
 
-            // ファイル名設定
             String filename = "勤務表_" + emp.getEmpName() + "_" +
                     startMonth.replace("-", "") + "_to_" + endMonth.replace("-", "") + ".csv";
             String encodedFilename = java.net.URLEncoder.encode(filename, "UTF-8")
@@ -172,7 +189,7 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 "attachment; filename*=UTF-8''" + encodedFilename);
 
             OutputStream out = response.getOutputStream();
-            out.write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF}); // UTF-8 BOM
+            out.write(new byte[]{(byte)0xEF, (byte)0xBB, (byte)0xBF});
             out.write(sb.toString().getBytes("UTF-8"));
             out.flush();
             out.close();

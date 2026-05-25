@@ -136,6 +136,11 @@
                 <button type="submit" name="action" value="download" class="btn btn-csv">
                     📥 CSVダウンロード
                 </button>
+                <!-- これをExcel -->
+				<button type="submit" name="action" value="excel" 
+    				class="btn btn-primary" style="background-color:#217346; border-color:#217346;">
+    				 📗 Excelダウンロード
+				</button>
                 <a href="<%= request.getContextPath() + menuPath %>" class="btn btn-back"> メニューに戻る</a>
             </div>
 

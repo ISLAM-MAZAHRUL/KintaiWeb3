@@ -16,6 +16,7 @@ public class MonthlySummaryBean {
     private BigDecimal totalNightHours;     // 深夜時間
 
     private String targetMonth;
+    private String empId;
 
     public MonthlySummaryBean() {
         this.totalOvertimeHours = BigDecimal.ZERO;
@@ -38,6 +39,7 @@ public class MonthlySummaryBean {
     public BigDecimal getTotalNightHours() { return totalNightHours; }
 
     public String getTargetMonth() { return targetMonth; }
+    public String getEmpId() { return empId; }
 
     // === Setter ===
     public void setTotalWorkDays(int totalWorkDays) { this.totalWorkDays = totalWorkDays; }
@@ -53,7 +55,7 @@ public class MonthlySummaryBean {
     public void setTotalNightHours(BigDecimal totalNightHours) { this.totalNightHours = totalNightHours; }
 
     public void setTargetMonth(String targetMonth) { this.targetMonth = targetMonth; }
-
+    public void setEmpId(String empId) { this.empId = empId; }
     // === 便利メソッド ===
     public double getAttendanceRate() {
         if (totalWorkDays == 0) return 0.0;

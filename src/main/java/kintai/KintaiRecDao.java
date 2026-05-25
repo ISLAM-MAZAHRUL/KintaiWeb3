@@ -1008,7 +1008,73 @@ public class KintaiRecDao {
 
         } catch (Exception e) {
             e.printStackTrace();
+            
         }
+    }
+    public List<MonthlySummaryBean> getAllMonthlySummaries(
+            List<String> empIds, String startMonth, String endMonth) {
+
+        List<MonthlySummaryBean> resultList = new ArrayList<>();
+        if (empIds == null || empIds.isEmpty()) return resultList;
+
+        java.time.YearMonth startYm = java.time.YearMonth.parse(startMonth);
+        java.time.YearMonth endYm = java.time.YearMonth.parse(endMonth);
+        java.time.LocalDate startDate = startYm.atDay(1);
+        java.time.LocalDate endDate = endYm.atEndOfMonth();
+
+        String inClause = empIds.stream()
+            .map(id -> "?")
+            .collect(java.util.stream.Collectors.joining(","));
+
+        String sql = "SELECT " +
+            "k.EMP_ID, " +
+            "COUNT(CASE WHEN k.CLOCK_IN IS NOT NULL THEN 1 END) AS ACTUAL_DAYS, " +
+            "SUM(CASE WHEN k.WORKING_HOURS IS NOT NULL THEN k.WORKING_HOURS ELSE 0 END) AS TOTAL_WORK_HOURS, " +
+            "SUM(CASE WHEN k.OVERTIME_HOURS IS NOT NULL THEN k.OVERTIME_HOURS ELSE 0 END) AS TOTAL_OVERTIME, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '有給' THEN 1 END) AS PAID_LEAVE, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '欠勤' THEN 1 END) AS ABSENT, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '休日出勤' THEN 1 END) AS HOLIDAY_WORK, " +
+            "COALESCE(SUM(b.TOTAL_BREAK), 0) AS TOTAL_BREAK_MINUTES " +
+            "FROM kintai k " +
+            "LEFT JOIN ( " +
+            "    SELECT KINTAI_REC_ID, " +
+            "    SUM(TIMESTAMPDIFF(MINUTE, BREAK_START, BREAK_END)) AS TOTAL_BREAK " +
+            "    FROM break " +
+            "    WHERE BREAK_END IS NOT NULL " +
+            "    GROUP BY KINTAI_REC_ID " +
+            ") b ON k.KINTAI_REC_ID = b.KINTAI_REC_ID " +
+            "WHERE k.EMP_ID IN (" + inClause + ") " +
+            "AND k.KINTAI_DATE >= ? " +
+            "AND k.KINTAI_DATE <= ? " +
+            "GROUP BY k.EMP_ID";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int idx = 1;
+            for (String empId : empIds) {
+                ps.setString(idx++, empId);
+            }
+            ps.setDate(idx++, java.sql.Date.valueOf(startDate));
+            ps.setDate(idx, java.sql.Date.valueOf(endDate));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    MonthlySummaryBean bean = new MonthlySummaryBean();
+                    bean.setEmpId(rs.getString("EMP_ID"));
+                    bean.setActualAttendanceDays(rs.getInt("ACTUAL_DAYS"));
+                    bean.setTotalWorkingHours(rs.getBigDecimal("TOTAL_WORK_HOURS"));
+                    bean.setTotalOvertimeHours(rs.getBigDecimal("TOTAL_OVERTIME"));
+                    bean.setPaidLeaveDays(rs.getInt("PAID_LEAVE"));
+                    bean.setAbsentDays(rs.getInt("ABSENT"));
+                    bean.setHolidayWorkDays(rs.getInt("HOLIDAY_WORK"));
+                    resultList.add(bean);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultList;
     }
 
 }
