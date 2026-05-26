@@ -116,9 +116,9 @@
         <tr>
             <th>社員番号</th>
             <th>氏名</th>
-            <th style="background:#5a9fd4;">今年残</th>
-            <th style="background:#e6a817;">去年残</th>
-            <th style="background:#3d8b4e;">残合計</th>
+            <th>今年残</th>
+            <th>去年残</th>
+            <th>残合計</th>
             <th>消化日数</th>
             <th>5日義務達成</th>
             <th>詳細</th>
@@ -143,9 +143,9 @@
             data-total="<%= total %>">
             <td><%= empId %></td>
             <td><%= empName %></td>
-            <td style="background:#e8f4fd;"><%= thisYear %>日</td>
-            <td style="background:#fff3cd;"><%= lastYear %>日</td>
-            <td style="background:#d4edda; font-weight:bold;"><%= total %>日</td>
+            <td><%= thisYear %>日</td>
+            <td><%= lastYear %>日</td>
+            <td><%= total %>日</td>
             <td><%= used %>日</td>
             <td class="<%= used >= 5 ? "achieved" : "not-achieved" %>">
                 <%= used >= 5 ? "✅ 達成" : "❌ 未達成" %>
@@ -162,7 +162,7 @@
     <% } %>
 
     <br>
-    <a href="<%= request.getContextPath() %>/AdminMenuServlet" class="btn-back">← 戻る</a>
+    <a href="<%= request.getContextPath() %>/AdminMenuServlet" class="btn-back">メニューに戻る</a>
 </div>
 
 <script>
