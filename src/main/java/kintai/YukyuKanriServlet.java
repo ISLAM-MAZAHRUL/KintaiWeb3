@@ -125,6 +125,18 @@ public class YukyuKanriServlet extends HttpServlet {
                    .forward(request, response);
             return;
         }
+        if ("detail".equals(action)) {
+            String empId = request.getParameter("empId");
+            List<Map<String, Object>> historyList = leaveBalanceDao.findGrantHistory(empId);
+            EmpBean emp = empDao.findByEmpId(empId);
+
+            request.setAttribute("historyList", historyList);
+            request.setAttribute("emp", emp);
+            request.setAttribute("empId", empId);
+            request.getRequestDispatcher("/web/YukyuKanriDetail.jsp")
+                   .forward(request, response);
+            return;
+        }
 
         // デフォルト → 一覧
         List<Map<String, Object>> summaryList = leaveBalanceDao.findYukyuSummary();

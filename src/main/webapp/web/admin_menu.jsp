@@ -1198,7 +1198,7 @@
              <div class="widget purple-widget">
                 <h2>外部連携・出力</h2>
                 <a href="<%= request.getContextPath() %>/web/kinmu_yayoi_export.jsp" class="function-btn" style="background: #6f42c1;">弥生給与データ出力</a>
-                <a href="<%= request.getContextPath() %>/web/kinmu_acc_export.jsp" class="function-btn" style="background:#6f42c1;">会計データ出力</a>
+                <a href="<%= request.getContextPath() %>/web/kinmu_acc_export.jsp" class="function-btn" style="background:#6f42c1;">プロジェクト別勤怠</a>
                 <a href="<%= request.getContextPath() %>/web/kinmu_hyo_export.jsp" class="function-btn" style="background:#6f42c1;">勤務表データ出力</a>
                 <a href="<%= request.getContextPath() %>/YukyuKanriServlet" class="function-btn" style="background:#6f42c1;">有休管理</a>
                 

@@ -46,14 +46,40 @@ public class KintaiRecDao {
         StringBuilder sql = new StringBuilder();
 
         sql.append("SELECT ");
-        sql.append("  k.KINTAI_REC_ID, k.KINTAI_DATE, k.EMP_ID, k.CLOCK_IN, k.CLOCK_OUT, ");
-        sql.append("  k.WORKING_HOURS, k.OVERTIME_HOURS, k.ATTENDANCE_TYPE, "); // ★追加
-        sql.append("  e.EMP_NAME, e.DEPT_ID, d.DEPT_NAME, e.POST_ID, p.POST_NAME ");
+        sql.append("  k.KINTAI_REC_ID, ");
+        sql.append("  k.KINTAI_DATE, ");
+        sql.append("  k.ATTENDANCE_TYPE, ");
+        sql.append("  k.EMP_ID, ");
+        sql.append("  k.CLOCK_IN, ");
+        sql.append("  k.CLOCK_OUT, ");
+        sql.append("  k.WORKING_HOURS, ");
+        sql.append("  k.OVERTIME_HOURS, ");
+        
+
+        sql.append("  e.EMP_NAME, ");
+        sql.append("  e.DEPT_ID, ");
+        sql.append("  d.DEPT_NAME, ");
+        sql.append("  e.POST_ID, ");
+        sql.append("  p.POST_NAME, ");
+
+        sql.append("  w.PROJECT_ID ");
+
         sql.append("FROM kintai k ");
-        sql.append("LEFT JOIN emp e ON k.EMP_ID = e.EMP_ID ");
-        sql.append("LEFT JOIN dept d ON e.DEPT_ID = d.DEPT_ID ");
-        sql.append("LEFT JOIN post p ON e.POST_ID = p.POST_ID ");
-        sql.append("WHERE 1=1 "); // WHERE句の条件を容易に追加するためのダミー
+
+        sql.append("LEFT JOIN emp e ");
+        sql.append("ON k.EMP_ID = e.EMP_ID ");
+
+        sql.append("LEFT JOIN dept d ");
+        sql.append("ON e.DEPT_ID = d.DEPT_ID ");
+
+        sql.append("LEFT JOIN post p ");
+        sql.append("ON e.POST_ID = p.POST_ID ");
+
+        sql.append("LEFT JOIN work_alloc w ");
+        sql.append("ON k.EMP_ID = w.EMP_ID ");
+        sql.append("AND k.KINTAI_DATE = w.WORK_DATE ");
+
+        sql.append("WHERE 1=1 ");
 
         List<Object> params = new ArrayList<>(); // プリペアドステートメントのパラメータリスト
 
@@ -126,6 +152,7 @@ public class KintaiRecDao {
                     bean.setClockIn(rs.getTime("CLOCK_IN"));
                     bean.setClockOut(rs.getTime("CLOCK_OUT"));
                     bean.setEmpName(rs.getString("EMP_NAME"));
+                    bean.setProjectId(rs.getString("PROJECT_ID"));
                     bean.setDeptNo(rs.getString("DEPT_ID"));
                     bean.setDeptName(rs.getString("DEPT_NAME"));
                     bean.setPostNo(rs.getString("POST_ID"));
@@ -302,8 +329,10 @@ public class KintaiRecDao {
      * @return 月度統計データ
      */
     public MonthlySummaryBean getMonthlySummary(String empno, String targetMonth) {
+    	
         MonthlySummaryBean summary = new MonthlySummaryBean();
         summary.setTargetMonth(targetMonth);
+        
 
         try {
             // 対象月の開始日と終了日を計算
@@ -328,7 +357,29 @@ public class KintaiRecDao {
 
         return summary;
     }
+    public MonthlySummaryBean getPeriodSummary(
+            String empno,
+            LocalDate startDate,
+            LocalDate endDate) {
 
+        MonthlySummaryBean summary = new MonthlySummaryBean();
+
+        try {
+            summary.setTargetMonth(
+                    startDate.toString() + " ～ " + endDate.toString());
+
+            calculateMonthlyWorkingHours(
+                    empno,
+                    startDate,
+                    endDate,
+                    summary);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return summary;
+    }
     /**
      * 指定期間の総出社日数を計算（週末とカレンダーの休日を除く）
      */
@@ -913,6 +964,63 @@ public class KintaiRecDao {
 
         return bean;
     }
+    public List<MonthlySummaryBean> getAllMonthlySummaries(
+            List<String> empIds, String startMonth, String endMonth) {
+
+        List<MonthlySummaryBean> resultList = new ArrayList<>();
+        if (empIds == null || empIds.isEmpty()) return resultList;
+
+        java.time.YearMonth startYm = java.time.YearMonth.parse(startMonth);
+        java.time.YearMonth endYm = java.time.YearMonth.parse(endMonth);
+        java.time.LocalDate startDate = startYm.atDay(1);
+        java.time.LocalDate endDate = endYm.atEndOfMonth();
+
+        String inClause = empIds.stream()
+            .map(id -> "?")
+            .collect(java.util.stream.Collectors.joining(","));
+
+        String sql = "SELECT " +
+            "k.EMP_ID, " +
+            "COUNT(CASE WHEN k.CLOCK_IN IS NOT NULL THEN 1 END) AS ACTUAL_DAYS, " +
+            "SUM(CASE WHEN k.WORKING_HOURS IS NOT NULL THEN k.WORKING_HOURS ELSE 0 END) AS TOTAL_WORK_HOURS, " +
+            "SUM(CASE WHEN k.OVERTIME_HOURS IS NOT NULL THEN k.OVERTIME_HOURS ELSE 0 END) AS TOTAL_OVERTIME, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '有給' THEN 1 END) AS PAID_LEAVE, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '欠勤' THEN 1 END) AS ABSENT, " +
+            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '休日出勤' THEN 1 END) AS HOLIDAY_WORK " +
+            "FROM kintai k " +
+            "WHERE k.EMP_ID IN (" + inClause + ") " +
+            "AND k.KINTAI_DATE >= ? " +
+            "AND k.KINTAI_DATE <= ? " +
+            "GROUP BY k.EMP_ID";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int idx = 1;
+            for (String empId : empIds) {
+                ps.setString(idx++, empId);
+            }
+            ps.setDate(idx++, java.sql.Date.valueOf(startDate));
+            ps.setDate(idx, java.sql.Date.valueOf(endDate));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    MonthlySummaryBean bean = new MonthlySummaryBean();
+                    bean.setEmpId(rs.getString("EMP_ID"));
+                    bean.setActualAttendanceDays(rs.getInt("ACTUAL_DAYS"));
+                    bean.setTotalWorkingHours(rs.getBigDecimal("TOTAL_WORK_HOURS"));
+                    bean.setTotalOvertimeHours(rs.getBigDecimal("TOTAL_OVERTIME"));
+                    bean.setPaidLeaveDays(rs.getInt("PAID_LEAVE"));
+                    bean.setAbsentDays(rs.getInt("ABSENT"));
+                    bean.setHolidayWorkDays(rs.getInt("HOLIDAY_WORK"));
+                    resultList.add(bean);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultList;
+    }
 
 
     /**
@@ -1008,73 +1116,7 @@ public class KintaiRecDao {
 
         } catch (Exception e) {
             e.printStackTrace();
-            
         }
-    }
-    public List<MonthlySummaryBean> getAllMonthlySummaries(
-            List<String> empIds, String startMonth, String endMonth) {
-
-        List<MonthlySummaryBean> resultList = new ArrayList<>();
-        if (empIds == null || empIds.isEmpty()) return resultList;
-
-        java.time.YearMonth startYm = java.time.YearMonth.parse(startMonth);
-        java.time.YearMonth endYm = java.time.YearMonth.parse(endMonth);
-        java.time.LocalDate startDate = startYm.atDay(1);
-        java.time.LocalDate endDate = endYm.atEndOfMonth();
-
-        String inClause = empIds.stream()
-            .map(id -> "?")
-            .collect(java.util.stream.Collectors.joining(","));
-
-        String sql = "SELECT " +
-            "k.EMP_ID, " +
-            "COUNT(CASE WHEN k.CLOCK_IN IS NOT NULL THEN 1 END) AS ACTUAL_DAYS, " +
-            "SUM(CASE WHEN k.WORKING_HOURS IS NOT NULL THEN k.WORKING_HOURS ELSE 0 END) AS TOTAL_WORK_HOURS, " +
-            "SUM(CASE WHEN k.OVERTIME_HOURS IS NOT NULL THEN k.OVERTIME_HOURS ELSE 0 END) AS TOTAL_OVERTIME, " +
-            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '有給' THEN 1 END) AS PAID_LEAVE, " +
-            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '欠勤' THEN 1 END) AS ABSENT, " +
-            "COUNT(CASE WHEN k.ATTENDANCE_TYPE = '休日出勤' THEN 1 END) AS HOLIDAY_WORK, " +
-            "COALESCE(SUM(b.TOTAL_BREAK), 0) AS TOTAL_BREAK_MINUTES " +
-            "FROM kintai k " +
-            "LEFT JOIN ( " +
-            "    SELECT KINTAI_REC_ID, " +
-            "    SUM(TIMESTAMPDIFF(MINUTE, BREAK_START, BREAK_END)) AS TOTAL_BREAK " +
-            "    FROM break " +
-            "    WHERE BREAK_END IS NOT NULL " +
-            "    GROUP BY KINTAI_REC_ID " +
-            ") b ON k.KINTAI_REC_ID = b.KINTAI_REC_ID " +
-            "WHERE k.EMP_ID IN (" + inClause + ") " +
-            "AND k.KINTAI_DATE >= ? " +
-            "AND k.KINTAI_DATE <= ? " +
-            "GROUP BY k.EMP_ID";
-
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            int idx = 1;
-            for (String empId : empIds) {
-                ps.setString(idx++, empId);
-            }
-            ps.setDate(idx++, java.sql.Date.valueOf(startDate));
-            ps.setDate(idx, java.sql.Date.valueOf(endDate));
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    MonthlySummaryBean bean = new MonthlySummaryBean();
-                    bean.setEmpId(rs.getString("EMP_ID"));
-                    bean.setActualAttendanceDays(rs.getInt("ACTUAL_DAYS"));
-                    bean.setTotalWorkingHours(rs.getBigDecimal("TOTAL_WORK_HOURS"));
-                    bean.setTotalOvertimeHours(rs.getBigDecimal("TOTAL_OVERTIME"));
-                    bean.setPaidLeaveDays(rs.getInt("PAID_LEAVE"));
-                    bean.setAbsentDays(rs.getInt("ABSENT"));
-                    bean.setHolidayWorkDays(rs.getInt("HOLIDAY_WORK"));
-                    resultList.add(bean);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return resultList;
     }
 
 }

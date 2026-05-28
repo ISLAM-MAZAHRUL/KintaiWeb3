@@ -2,6 +2,7 @@
 <%@ page import="kintai.UserBean" %>
 <%@ page import="kintai.EmpBean" %>
 <%@ page import="kintai.KintaiRecBean" %>
+<%@ page import="kintai.MonthlySummaryBean" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.time.LocalDate" %>
 <%@ page import="java.time.YearMonth" %>
@@ -13,13 +14,14 @@
     }
     EmpBean emp = (EmpBean) request.getAttribute("emp");
     List<KintaiRecBean> records = (List<KintaiRecBean>) request.getAttribute("records");
-    
+    MonthlySummaryBean summary =
+    	    (MonthlySummaryBean) request.getAttribute("summary");
     String targetMonth = (String) request.getAttribute("targetMonth");
     String startMonth = (String) request.getAttribute("startMonth");
     String endMonth = (String) request.getAttribute("endMonth");
     YearMonth ym = (YearMonth) request.getAttribute("ym");
 
-    // সাধারণ ইউজারদের জন্য /menu এবং অ্যাডমিনের জন্য /AdminMenuServlet
+    // 一般ユーザー向けは /menu、管理者向けは /AdminMenuServlet です。
     String menuPath = (user.getRoleId() == 1) ? "/AdminMenuServlet" : "/menu";
     String[] weekdays = {"日", "月", "火", "水", "木", "金", "土"};
 %>
@@ -44,7 +46,7 @@
         .btn-preview { background: #007bff; }
         .btn-csv { background: #28a745; }
         .btn-back { background: #6c757d; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
         th { background: #ff9800; color: white; padding: 10px; text-align: center; border: 1px solid #e08e0b; }
         td { padding: 8px; border: 1px solid #ddd; text-align: center; }
         tr:nth-child(even) { background: #f8f9fa; }
@@ -79,6 +81,38 @@
             flex-basis: 100%;
             height: 10px;
         }
+        .status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.badge-work {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.badge-paid {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-sick {
+    background: #fdecea;
+    color: #c62828;
+}
+
+.badge-dayoff {
+    background: #eeeeee;
+    color: #555555;
+}
+
+.badge-holiday {
+    background: #fce4ec;
+    color: #ad1457;
+}
     </style>
 </head>
 <body>
@@ -127,7 +161,9 @@
                     <label>終了月</label>
                     <input type="month" id="endMonth" name="endMonth" value="<%= endMonth != null ? endMonth : "" %>" required />
                 </div>
-            </div>
+                
+
+
 
             <div class="form-row">
                 <button type="submit" name="action" value="preview" class="btn btn-preview">
@@ -136,12 +172,11 @@
                 <button type="submit" name="action" value="download" class="btn btn-csv">
                     📥 CSVダウンロード
                 </button>
-                <!-- これをExcel -->
-				<button type="submit" name="action" value="excel" 
-    				class="btn btn-primary" style="background-color:#217346; border-color:#217346;">
-    				 📗 Excelダウンロード
-				</button>
+                <button type="submit" name="action" value="excel" class="btn btn-csv">
+    📊 Excelダウンロード
+</button>
                 <a href="<%= request.getContextPath() + menuPath %>" class="btn btn-back"> メニューに戻る</a>
+                
             </div>
 
         </form>
@@ -164,14 +199,20 @@
     <table>
         <tr>
             <th>日付</th>
+            <th>出勤状況</th>
             <th>曜日</th>
             <th>始業</th>
             <th>終了</th>
-            <th>休憩</th>
-            <th>勤務時間</th>
+            <th>休憩時間</th>
+			<th>勤務時間</th>
+			<th>残業時間</th>
+			<th>プロジェクトコード</th>
+			
+			
+		 	
         </tr>
         <%
-        // ডেট টেক্সটকে নিরাপদে LocalDate-এ কনভার্ট করা হচ্ছে
+        // 日付テキストを安全にLocalDateに変換する
         LocalDate startDate = YearMonth.parse(startMonth).atDay(1);
         LocalDate endDate = YearMonth.parse(endMonth).atEndOfMonth();
         
@@ -185,17 +226,150 @@
             }
         %>
         <tr class="<%= isWeekend ? "weekend" : "" %>">
-            <td><%= date.getMonthValue() %>/<%= String.format("%02d", date.getDayOfMonth()) %></td>
-            <td><%= weekday %></td>
-            <td><%= rec != null && rec.getClockIn() != null ? rec.getClockIn().toString().substring(0, 5) : "" %></td>
-            <td><%= rec != null && rec.getClockOut() != null ? rec.getClockOut().toString().substring(0, 5) : "" %></td>
-            <td><%= rec != null && rec.getClockIn() != null ? String.format("%.0f", rec.getTotalBreakMinutes() / 60.0) : "" %></td>
-            <td><%= rec != null && rec.getClockIn() != null ? String.format("%.1f", rec.getActualWorkMinutes() / 60.0) : "" %></td>
-        </tr>
-        <% } %>
-    </table>
-    <% } %>
-    <% } %>
+
+    <td>
+        <%= date.getMonthValue() %>/<%= String.format("%02d", date.getDayOfMonth()) %>
+    </td>
+
+    <td>
+    <%
+    String status = "";
+
+    if (rec != null && rec.getAttendanceType() != null) {
+        status = rec.getAttendanceType();
+    }
+
+    // Auto status
+    if (status == null || status.isEmpty()) {
+
+        if (isWeekend) {
+            status = "休み";
+        } else if (rec != null && rec.getClockIn() != null) {
+            status = "出勤";
+        }
+
+    }
+
+    String badgeClass = "badge-normal";
+
+    if ("出勤".equals(status)) {
+        badgeClass = "badge-work";
+    } else if ("有給休暇".equals(status)) {
+        badgeClass = "badge-paid";
+    } else if ("病気休暇".equals(status)) {
+        badgeClass = "badge-sick";
+    } else if ("休み".equals(status)) {
+        badgeClass = "badge-dayoff";
+    } else if ("祝日".equals(status)) {
+        badgeClass = "badge-holiday";
+    }
+    %>
+
+    <span class="status-badge <%= badgeClass %>">
+        <%= status %>
+    </span>
+    </td>
+
+    
+
+<td><%= weekday %></td>
+
+<!-- 始業 -->
+<td>
+
+    <%= rec != null && rec.getClockIn() != null
+        ? rec.getClockIn().toString().substring(0, 5)
+        : "" %>
+</td>
+
+<!-- 終了 -->
+<td>
+    <%= rec != null && rec.getClockOut() != null
+        ? rec.getClockOut().toString().substring(0, 5)
+        : "" %>
+</td>
+
+<!-- 休憩時間 -->
+<td>
+    <%= rec != null && rec.getClockIn() != null
+        ? String.format("%.1f",
+            rec.getTotalBreakMinutes() / 60.0)
+        : "" %>
+</td>
+
+<!-- 勤務時間 -->
+<td>
+    <%= rec != null && rec.getClockIn() != null
+        ? String.format("%.1f",
+            rec.getActualWorkMinutes() / 60.0)
+        : "" %>
+</td>
+
+<!-- 残業時間 -->
+<td>
+    <%= rec != null && rec.getClockIn() != null
+        ? String.format("%.1f",
+            rec.getOvertimeMinutes() / 60.0)
+        : "" %>
+</td>
+<!-- プロジェクトコード -->
+<td>
+    <%= rec != null && rec.getProjectId() != null
+        ? rec.getProjectId()
+        : "" %>
+</td>
+
+
+</tr>
+<% } %>
+
+    
+  
+
+<% if (summary != null) { %>
+<tr style="font-weight:bold; background:#f1f3f5;">
+    <td style="text-align:left; padding-left:200px;" colspan="5">合計</td>
+
+    <td>
+        <%= summary.getTotalBreakHours() %>
+    </td>
+
+    <td>
+        <%= summary.getTotalWorkingHours() %>
+    </td>
+
+    <td>
+        <%= summary.getTotalOvertimeHours() %>
+    </td>
+    <td></td>
+</tr>
+<% } %>
+
+</table> 
+
+<% if (summary != null) { %>
+
+<h3>集計結果</h3>
+
+<p>
+合計勤務時間：
+<%= summary.getTotalWorkingHours() %>
+</p>
+
+<p>
+合計残業時間：
+<%= summary.getTotalOvertimeHours() %>
+</p>
+
+
+<p>
+合計休憩時間：
+<%= summary.getTotalBreakHours() %>
+</p>
+<% } %>
+<% } %>
+
+<% } %>
 
 </div> <script>
 function formatMonth(date) {

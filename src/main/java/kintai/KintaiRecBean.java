@@ -37,7 +37,13 @@ public class KintaiRecBean implements Serializable {
     
     // ★ 勤怠区分を追加
     private String attendanceType; // 出勤 / 有給 / 無給 / 欠勤
+    private String attendanceStatus;
     
+    private double totalWorkingHours;
+    private double totalOvertimeHours;
+    private double totalNightHours;
+    private double totalBreakHours;
+    private String projectId;
     /**
      * デフォルトコンストラクタ
      */
@@ -46,6 +52,50 @@ public class KintaiRecBean implements Serializable {
 
 
     // --- アクセサメソッド (getter/setter) ---
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
+    }
+    public String getAttendanceStatus() {
+    	     return attendanceStatus;
+    }
+    public void setAttendanceStatus(String attendanceStatus) {
+    	   this.attendanceStatus=attendanceStatus;
+    }
+    public double getTotalWorkingHours() {
+        return totalWorkingHours;
+    }
+
+    public void setTotalWorkingHours(double totalWorkingHours) {
+        this.totalWorkingHours = totalWorkingHours;
+    }
+
+    public double getTotalOvertimeHours() {
+        return totalOvertimeHours;
+    }
+
+    public void setTotalOvertimeHours(double totalOvertimeHours) {
+        this.totalOvertimeHours = totalOvertimeHours;
+    }
+
+    public double getTotalNightHours() {
+        return totalNightHours;
+    }
+
+    public void setTotalNightHours(double totalNightHours) {
+        this.totalNightHours = totalNightHours;
+    }
+
+    public double getTotalBreakHours() {
+        return totalBreakHours;
+    }
+
+    public void setTotalBreakHours(double totalBreakHours) {
+        this.totalBreakHours = totalBreakHours;
+    }
 
     public int getKintaiRecId() {
         return kintaiRecId;
@@ -221,7 +271,7 @@ public class KintaiRecBean implements Serializable {
         sb.append("\"clockIn\":\"").append(clockIn != null ? clockIn.toLocalTime().toString() : "").append("\",");
         sb.append("\"clockOut\":\"").append(clockOut != null ? clockOut.toLocalTime().toString() : "").append("\",");
         sb.append("\"attendanceType\":\"").append(attendanceType != null ? attendanceType : "").append("\",");
-
+        sb.append("\"projectId\":\"").append(projectId != null ? projectId : "").append("\",");
         sb.append("\"totalBreakMinutes\":").append(totalBreakMinutes).append(",");
         sb.append("\"actualWorkMinutes\":").append(actualWorkMinutes).append(",");
 
@@ -272,6 +322,7 @@ public class KintaiRecBean implements Serializable {
                     case "overtimeMinutes": bean.setOvertimeMinutes(Long.parseLong(value)); break;
                     case "nightovertimeMinutes": bean.setNightovertimeMinutes(Long.parseLong(value)); break;
                     case "attendanceType": bean.setAttendanceType(value); break; // ★追加
+                    case "projectId": bean.setProjectId(value); break;
                 }
             }
         } catch (Exception e) {
