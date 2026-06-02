@@ -137,7 +137,7 @@ public class KinmuHyoExportServlet extends HttpServlet {
 
             
             // 明細ヘッダー
-            sb.append("日付,出勤状況,曜日,始業時間,終了時間,休憩時間,勤務時間,残業時間,プロジェクトコード\n");
+            sb.append("日付,曜日,出勤状況,始業時間,終了時間,休憩時間,勤務時間,残業時間,プロジェクトコード\n");
             
             // 曜日配列
             String[] weekdays = {"日", "月", "火", "水", "木", "金", "土"};
@@ -184,6 +184,9 @@ public class KinmuHyoExportServlet extends HttpServlet {
                         + String.format("%02d", date.getDayOfMonth()))
                         .append(",");
 
+                // 曜日
+                sb.append(weekday).append(",");
+
                 // 出勤状況
                 String status = "";
 
@@ -204,7 +207,6 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 }
 
                 sb.append(status).append(",");
-                sb.append(weekday).append(",");
                 sb.append(clockIn).append(",");
                 sb.append(clockOut).append(",");
                 sb.append(breakTime).append(",");
@@ -219,8 +221,8 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 }
 
                 sb.append(overtimeTime).append(",");
-                sb.append(rec != null && rec.getProjectId() != null
-                        ? rec.getProjectId()
+                sb.append(rec != null && rec.getProjectCode() != null
+                        ? rec.getProjectCode()
                         : "").append("\n");
             }
                 
