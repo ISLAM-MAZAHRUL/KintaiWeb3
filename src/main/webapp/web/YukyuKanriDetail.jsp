@@ -12,8 +12,7 @@
     EmpBean emp = (EmpBean) request.getAttribute("emp");
 
     List<Map<String, Object>> historyList =
-    	    (List<Map<String, Object>>) request.getAttribute("historyList");
-    	 
+        (List<Map<String, Object>>) request.getAttribute("historyList");
 %>
 
 <!DOCTYPE html>
@@ -24,165 +23,54 @@
 <title>有休履歴</title>
 
 <style>
-    body{
-        margin:0;
-        font-family:Meiryo,sans-serif;
-        background:#f4f7f6;
-    }
-
-    .main-wrapper{
-        max-width:900px;
-        margin:30px auto;
-        background:white;
-        padding:30px;
-        border-radius:8px;
-        box-shadow:0 2px 10px rgba(0,0,0,0.05);
-    }
-
-    .page-header{
-        display:flex;
-        align-items:center;
-        gap:12px;
-        border-bottom:3px solid #6f42c1;
-        padding-bottom:15px;
-        margin-bottom:25px;
-    }
-
-    .page-header h1{
-        margin:0;
-        font-size:24px;
-    }
-
-    /* 社員カード */
-    .emp-card{
-        background:#f8f0ff;
-        border:1px solid #6f42c1;
-        border-radius:8px;
-        padding:15px 20px;
-        margin-bottom:25px;
-        display:flex;
-        gap:30px;
-        flex-wrap:wrap;
-    }
-
-    .emp-card .label{
-        font-size:12px;
-        color:#666;
-    }
-
-    .emp-card .value{
-        font-size:16px;
-        font-weight:bold;
-        color:#6f42c1;
-    }
-
-    /* Table */
-    table{
-        width:100%;
-        border-collapse:collapse;
-        margin-top:10px;
-    }
-
-    th{
-        background:#6f42c1;
-        color:white;
-        padding:12px;
-        text-align:center;
-        font-size:13px;
-    }
-
-    td{
-        padding:10px;
-        border:1px solid #ddd;
-        text-align:center;
-        font-size:13px;
-    }
-
-    tr:nth-child(even){
-        background:#f9f9f9;
-    }
-
-    tr:hover{
-        background:#f0e6ff;
-    }
-
-    /* Status */
-    .status-active{
-        color:#28a745;
-        font-weight:bold;
-    }
-
-    .status-expired{
-        color:#dc3545;
-        font-weight:bold;
-    }
-
-    .status-warning{
-        color:#e6a817;
-        font-weight:bold;
-    }
-
-    .btn-back{
-        background:#6c757d;
-        color:white;
-        padding:10px 20px;
-        border:none;
-        border-radius:5px;
-        cursor:pointer;
-        text-decoration:none;
-        display:inline-block;
-        margin-top:20px;
-    }
-
-    .btn-back:hover{
-        background:#5a6268;
-    }
+    body{ margin:0; font-family:Meiryo,sans-serif; background:#f4f7f6; }
+    .main-wrapper{ max-width:900px; margin:30px auto; background:white; padding:30px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+    .page-header{ display:flex; align-items:center; gap:12px; border-bottom:3px solid #6f42c1; padding-bottom:15px; margin-bottom:25px; }
+    .page-header h1{ margin:0; font-size:24px; }
+    .emp-card{ background:#f8f0ff; border:1px solid #6f42c1; border-radius:8px; padding:15px 20px; margin-bottom:25px; display:flex; gap:30px; flex-wrap:wrap; }
+    .emp-card .label{ font-size:12px; color:#666; }
+    .emp-card .value{ font-size:16px; font-weight:bold; color:#6f42c1; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th{ background:#6f42c1; color:white; padding:12px; text-align:center; font-size:13px; }
+    td{ padding:10px; border:1px solid #ddd; text-align:center; font-size:13px; }
+    tr:nth-child(even){ background:#f9f9f9; }
+    tr:hover{ background:#f0e6ff; }
+    .status-active{ color:#28a745; font-weight:bold; }
+    .status-expired{ color:#dc3545; font-weight:bold; }
+    .status-warning{ color:#e6a817; font-weight:bold; }
+    .btn-back{ background:#6c757d; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; text-decoration:none; display:inline-block; margin-top:20px; }
+    .btn-back:hover{ background:#5a6268; }
 </style>
 </head>
 
 <body>
-
 <div class="main-wrapper">
 
-    <!-- Header -->
     <div class="page-header">
         <span style="font-size:28px;">📋</span>
         <h1>有休付与履歴</h1>
     </div>
 
-    <!-- 社員情報 -->
     <% if (emp != null) { %>
     <div class="emp-card">
-
         <div>
             <div class="label">社員番号</div>
-            <div class="value">
-                <%= emp.getEmpId() != null ? emp.getEmpId() : "-" %>
-            </div>
+            <div class="value"><%= emp.getEmpId() != null ? emp.getEmpId() : "-" %></div>
         </div>
-
         <div>
             <div class="label">氏名</div>
-            <div class="value">
-                <%= emp.getEmpName() != null ? emp.getEmpName() : "-" %>
-            </div>
+            <div class="value"><%= emp.getEmpName() != null ? emp.getEmpName() : "-" %></div>
         </div>
-
         <div>
             <div class="label">部署</div>
-            <div class="value">
-                <%= emp.getDeptName() != null ? emp.getDeptName() : "-" %>
-            </div>
+            <div class="value"><%= emp.getDeptName() != null ? emp.getDeptName() : "-" %></div>
         </div>
-
     </div>
     <% } %>
 
-    <!-- 履歴 -->
     <h3 style="color:#6f42c1;">📅 付与履歴一覧</h3>
 
     <% if (historyList != null && !historyList.isEmpty()) { %>
-
     <table>
         <tr>
             <th>付与日</th>
@@ -190,28 +78,19 @@
             <th>付与日数</th>
             <th>消化日数</th>
             <th>残日数</th>
-            <th>ステータス</th>
+            <th>有効期限状態</th>
         </tr>
-
         <%
             java.time.LocalDate today = java.time.LocalDate.now();
-
             for (Map<String, Object> row : historyList) {
-
-                java.sql.Date expireSql =
-                    (java.sql.Date) row.get("expireDate");
-
-                java.time.LocalDate expireDate =
-                    expireSql != null ? expireSql.toLocalDate() : null;
-
+                java.sql.Date expireSql = (java.sql.Date) row.get("expireDate");
+                java.time.LocalDate expireDate = expireSql != null ? expireSql.toLocalDate() : null;
                 int remaining = 0;
                 if (row.get("remaining") != null) {
                     remaining = ((Number) row.get("remaining")).intValue();
                 }
-
                 String status = "";
                 String statusClass = "";
-
                 if (expireDate != null && expireDate.isBefore(today)) {
                     status = "期限切れ";
                     statusClass = "status-expired";
@@ -223,35 +102,24 @@
                     statusClass = "status-active";
                 }
         %>
-
         <tr>
             <td><%= row.get("grantDate") %></td>
             <td><%= row.get("expireDate") %></td>
             <td><%= row.get("grantedDays") %>日</td>
             <td><%= row.get("usedDays") %>日</td>
             <td><strong><%= remaining %>日</strong></td>
-            <td class="<%= statusClass %>">
-                <%= status %>
-            </td>
+            <td class="<%= statusClass %>"><%= status %></td>
         </tr>
-
         <% } %>
     </table>
-
     <% } else { %>
-
         <p>付与履歴がありません。</p>
-
     <% } %>
-   
-<% } %>
 
-    <a href="<%= request.getContextPath() %>/YukyuKanriServlet"
-       class="btn-back">
-       ← 有休管理に戻る
+    <a href="<%= request.getContextPath() %>/YukyuKanriServlet" class="btn-back">
+        ← 有休管理に戻る
     </a>
 
 </div>
-
 </body>
 </html>
