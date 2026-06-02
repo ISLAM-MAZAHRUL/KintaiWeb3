@@ -102,7 +102,7 @@ public class YukyuKanriServlet extends HttpServlet {
 
                     if (!alreadyGranted) {
                         leaveBalanceDao.grantLeave(
-                            emp.getEmpId(), 1, thisYearStart, expireDate, 10, loginUser.getEmpId());
+                            emp.getEmpId(), 1, thisYearStart, expireDate, emp.getGrantedDays(), loginUser.getEmpId());
                         grantedCount++;
                     } else {
                         skippedCount++;
