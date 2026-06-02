@@ -54,15 +54,13 @@ public class KintaiRecDao {
         sql.append("  k.CLOCK_OUT, ");
         sql.append("  k.WORKING_HOURS, ");
         sql.append("  k.OVERTIME_HOURS, ");
-        
-
         sql.append("  e.EMP_NAME, ");
         sql.append("  e.DEPT_ID, ");
         sql.append("  d.DEPT_NAME, ");
         sql.append("  e.POST_ID, ");
         sql.append("  p.POST_NAME, ");
-
-        sql.append("  w.PROJECT_ID ");
+        sql.append("  w.PROJECT_ID, ");
+        sql.append("  pr.PROJECT_CODE ");
 
         sql.append("FROM kintai k ");
 
@@ -78,6 +76,9 @@ public class KintaiRecDao {
         sql.append("LEFT JOIN work_alloc w ");
         sql.append("ON k.EMP_ID = w.EMP_ID ");
         sql.append("AND k.KINTAI_DATE = w.WORK_DATE ");
+
+        sql.append("LEFT JOIN project pr ");
+        sql.append("ON w.PROJECT_ID = pr.PROJECT_ID ");
 
         sql.append("WHERE 1=1 ");
 
@@ -100,12 +101,7 @@ public class KintaiRecDao {
                 sql.append(") ");
                 params.addAll(targetEmpNos);
             }
-            // else if (empNoFilter != null && !empNoFilter.trim().isEmpty()) {
-            //     // 単一のempNoFilterが指定されている場合 (管理者による検索)
-            //     sql.append("AND k.EMPNO = ? ");
-            //     params.add(empNoFilter);
-            // }
-            // ↑ KintaiRecServlet側でempNoFilterをtargetEmpNosに変換するようにしたので、上記のコメントアウトは不要
+           
         }
 
 
@@ -153,6 +149,7 @@ public class KintaiRecDao {
                     bean.setClockOut(rs.getTime("CLOCK_OUT"));
                     bean.setEmpName(rs.getString("EMP_NAME"));
                     bean.setProjectId(rs.getString("PROJECT_ID"));
+                    bean.setProjectCode(rs.getString("PROJECT_CODE"));
                     bean.setDeptNo(rs.getString("DEPT_ID"));
                     bean.setDeptName(rs.getString("DEPT_NAME"));
                     bean.setPostNo(rs.getString("POST_ID"));
@@ -1118,5 +1115,4 @@ public class KintaiRecDao {
             e.printStackTrace();
         }
     }
-
 }
