@@ -12,9 +12,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @WebServlet("/KinmuHyoExportServlet")
@@ -89,6 +96,7 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 return;
             }
 
+
             // アイドルデータの取得（開始から終了までのすべてのデータを統合）
             List<String> empIds = List.of(empId);
             List<KintaiRecBean> records = kintaiRecDao.getKintaiRecords(
@@ -112,8 +120,9 @@ public class KinmuHyoExportServlet extends HttpServlet {
                 return;
             }
 
+
             // 以下は、CSVファイルをダウンロードするためのロジックです（月初めから月末までループ処理されます）。
-            
+
             StringBuilder sb = new StringBuilder();
 
             // ヘッダー情報
@@ -133,7 +142,10 @@ public class KinmuHyoExportServlet extends HttpServlet {
             // 曜日配列
             String[] weekdays = {"日", "月", "火", "水", "木", "金", "土"};
 
+
             // 開始日から終了日までの範囲を毎日ループします
+
+
             for (LocalDate date = monthStart; !date.isAfter(monthEnd); date = date.plusDays(1)) {
                 String weekday = weekdays[date.getDayOfWeek().getValue() % 7];
 
@@ -235,7 +247,63 @@ public class KinmuHyoExportServlet extends HttpServlet {
             
             if ("excel".equals(action)) {
 
-                Workbook workbook = new XSSFWorkbook();
+                XSSFWorkbook workbook = new XSSFWorkbook();
+
+                // ===== スタイル定義 =====
+                // タイトルスタイル
+                XSSFCellStyle titleStyle = workbook.createCellStyle();
+                Font titleFont = workbook.createFont();
+                titleFont.setBold(true);
+                titleFont.setFontHeightInPoints((short) 14);
+                titleStyle.setFont(titleFont);
+                titleStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                // ヘッダースタイル（オレンジ背景）
+                XSSFCellStyle headerStyle = workbook.createCellStyle();
+                headerStyle.setFillForegroundColor(new XSSFColor(new byte[]{(byte)255, (byte)152, (byte)0}, null));
+                headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                Font headerFont = workbook.createFont();
+                headerFont.setBold(true);
+                headerFont.setColor(IndexedColors.WHITE.getIndex());
+                headerStyle.setFont(headerFont);
+                headerStyle.setAlignment(HorizontalAlignment.CENTER);
+                headerStyle.setBorderBottom(BorderStyle.THIN);
+                headerStyle.setBorderTop(BorderStyle.THIN);
+                headerStyle.setBorderLeft(BorderStyle.THIN);
+                headerStyle.setBorderRight(BorderStyle.THIN);
+
+                // 通常セルスタイル
+                XSSFCellStyle normalStyle = workbook.createCellStyle();
+                normalStyle.setBorderBottom(BorderStyle.THIN);
+                normalStyle.setBorderTop(BorderStyle.THIN);
+                normalStyle.setBorderLeft(BorderStyle.THIN);
+                normalStyle.setBorderRight(BorderStyle.THIN);
+                normalStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                // 週末スタイル（薄いピンク）
+                XSSFCellStyle weekendStyle = workbook.createCellStyle();
+                weekendStyle.cloneStyleFrom(normalStyle);
+                weekendStyle.setFillForegroundColor(new XSSFColor(new byte[]{(byte)255, (byte)224, (byte)224}, null));
+                weekendStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+                // 合計行スタイル
+                XSSFCellStyle totalStyle = workbook.createCellStyle();
+                totalStyle.cloneStyleFrom(normalStyle);
+                Font totalFont = workbook.createFont();
+                totalFont.setBold(true);
+                totalStyle.setFont(totalFont);
+                totalStyle.setFillForegroundColor(new XSSFColor(new byte[]{(byte)241, (byte)243, (byte)245}, null));
+                totalStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+                // ラベルスタイル
+                XSSFCellStyle labelStyle = workbook.createCellStyle();
+                Font labelFont = workbook.createFont();
+                labelFont.setBold(true);
+                labelStyle.setFont(labelFont);
+                labelStyle.setBorderBottom(BorderStyle.THIN);
+                labelStyle.setBorderTop(BorderStyle.THIN);
+                labelStyle.setBorderLeft(BorderStyle.THIN);
+                labelStyle.setBorderRight(BorderStyle.THIN);
 
                 for (YearMonth ym = startYm; !ym.isAfter(endYm); ym = ym.plusMonths(1)) {
 
@@ -243,33 +311,49 @@ public class KinmuHyoExportServlet extends HttpServlet {
 
                     int rowNum = 0;
 
+                    // タイトル行
                     Row titleRow = sheet.createRow(rowNum++);
-                    titleRow.createCell(0).setCellValue("勤務表");
+                    Cell titleCell = titleRow.createCell(0);
+                    titleCell.setCellValue("勤　務　表　(" + ym.toString() + ")");
+                    titleCell.setCellStyle(titleStyle);
+                    titleRow.setHeightInPoints(30);
 
+                    // 社員情報
                     Row infoRow1 = sheet.createRow(rowNum++);
-                    infoRow1.createCell(0).setCellValue("社員番号");
-                    infoRow1.createCell(1).setCellValue(emp.getEmpId());
+                    Cell lbl1 = infoRow1.createCell(0);
+                    lbl1.setCellValue("社員番号");
+                    lbl1.setCellStyle(labelStyle);
+                    Cell val1 = infoRow1.createCell(1);
+                    val1.setCellValue(emp.getEmpId());
+                    val1.setCellStyle(normalStyle);
 
                     Row infoRow2 = sheet.createRow(rowNum++);
-                    infoRow2.createCell(0).setCellValue("氏名");
-                    infoRow2.createCell(1).setCellValue(emp.getEmpName());
+                    Cell lbl2 = infoRow2.createCell(0);
+                    lbl2.setCellValue("氏名");
+                    lbl2.setCellStyle(labelStyle);
+                    Cell val2 = infoRow2.createCell(1);
+                    val2.setCellValue(emp.getEmpName());
+                    val2.setCellStyle(normalStyle);
 
                     Row infoRow3 = sheet.createRow(rowNum++);
-                    infoRow3.createCell(0).setCellValue("対象月");
-                    infoRow3.createCell(1).setCellValue(ym.toString());
+                    Cell lbl3 = infoRow3.createCell(0);
+                    lbl3.setCellValue("対象月");
+                    lbl3.setCellStyle(labelStyle);
+                    Cell val3 = infoRow3.createCell(1);
+                    val3.setCellValue(ym.toString());
+                    val3.setCellStyle(normalStyle);
 
                     rowNum++;
 
+                    // ヘッダー行
                     Row header = sheet.createRow(rowNum++);
-                    header.createCell(0).setCellValue("日付");
-                    header.createCell(1).setCellValue("出勤状況");
-                    header.createCell(2).setCellValue("曜日");
-                    header.createCell(3).setCellValue("始業時間");
-                    header.createCell(4).setCellValue("終了時間");
-                    header.createCell(5).setCellValue("休憩時間");
-                    header.createCell(6).setCellValue("勤務時間");
-                    header.createCell(7).setCellValue("残業時間");
-                    header.createCell(8).setCellValue("プロジェクトコード");
+                    String[] headers = {"日付", "曜日", "出勤状況", "始業時間", "終了時間", "休憩時間", "勤務時間", "残業時間", "プロジェクトコード"};
+                    for (int i = 0; i < headers.length; i++) {
+                        Cell hCell = header.createCell(i);
+                        hCell.setCellValue(headers[i]);
+                        hCell.setCellStyle(headerStyle);
+                    }
+                    header.setHeightInPoints(20);
 
                     LocalDate sheetStart = ym.atDay(1);
                     LocalDate sheetEnd = ym.atEndOfMonth();
@@ -288,68 +372,67 @@ public class KinmuHyoExportServlet extends HttpServlet {
                         }
 
                         String weekday = weekdays[date.getDayOfWeek().getValue() % 7];
+                        boolean isWknd = date.getDayOfWeek().getValue() == 6 || date.getDayOfWeek().getValue() == 7;
+                        XSSFCellStyle rowStyle = isWknd ? weekendStyle : normalStyle;
 
                         Row row = sheet.createRow(rowNum++);
+                        row.setHeightInPoints(18);
 
-                        row.createCell(0).setCellValue(
-                                date.getMonthValue() + "/" + String.format("%02d", date.getDayOfMonth())
-                        );
+                        // 日付
+                        Cell c0 = row.createCell(0);
+                        c0.setCellValue(date.getMonthValue() + "/" + String.format("%02d", date.getDayOfMonth()));
+                        c0.setCellStyle(rowStyle);
 
+                        // 曜日
+                        Cell c1 = row.createCell(1);
+                        c1.setCellValue(weekday);
+                        c1.setCellStyle(rowStyle);
+
+                        // 出勤状況
                         String status = "";
-
                         if (rec != null && rec.getAttendanceStatus() != null) {
                             status = rec.getAttendanceStatus();
                         }
-
-                        boolean isWeekend =
-                                date.getDayOfWeek().getValue() == 6
-                                || date.getDayOfWeek().getValue() == 7;
-
                         if (status == null || status.isEmpty()) {
-                            if (isWeekend) {
+                            if (isWknd) {
                                 status = "休み";
                             } else if (rec != null && rec.getClockIn() != null) {
                                 status = "出勤";
                             }
                         }
+                        Cell c2 = row.createCell(2);
+                        c2.setCellValue(status);
+                        c2.setCellStyle(rowStyle);
 
-                        row.createCell(1).setCellValue(status);
-                        row.createCell(2).setCellValue(weekday);
+                        // 始業時間
+                        Cell c3 = row.createCell(3);
+                        c3.setCellValue(rec != null && rec.getClockIn() != null ? rec.getClockIn().toString().substring(0, 5) : "");
+                        c3.setCellStyle(rowStyle);
 
-                        row.createCell(3).setCellValue(
-                                rec != null && rec.getClockIn() != null
-                                        ? rec.getClockIn().toString().substring(0, 5)
-                                        : ""
-                        );
+                        // 終了時間
+                        Cell c4 = row.createCell(4);
+                        c4.setCellValue(rec != null && rec.getClockOut() != null ? rec.getClockOut().toString().substring(0, 5) : "");
+                        c4.setCellStyle(rowStyle);
 
-                        row.createCell(4).setCellValue(
-                                rec != null && rec.getClockOut() != null
-                                        ? rec.getClockOut().toString().substring(0, 5)
-                                        : ""
-                        );
+                        // 休憩時間
+                        Cell c5 = row.createCell(5);
+                        c5.setCellValue(rec != null && rec.getClockIn() != null ? rec.getTotalBreakMinutes() / 60.0 : 0.0);
+                        c5.setCellStyle(rowStyle);
 
-                        row.createCell(5).setCellValue(
-                                rec != null && rec.getClockIn() != null
-                                        ? rec.getTotalBreakMinutes() / 60.0
-                                        : 0.0
-                        );
+                        // 勤務時間
+                        Cell c6 = row.createCell(6);
+                        c6.setCellValue(rec != null && rec.getClockIn() != null ? rec.getActualWorkMinutes() / 60.0 : 0.0);
+                        c6.setCellStyle(rowStyle);
 
-                        row.createCell(6).setCellValue(
-                                rec != null && rec.getClockIn() != null
-                                        ? rec.getActualWorkMinutes() / 60.0
-                                        : 0.0
-                        );
+                        // 残業時間
+                        Cell c7 = row.createCell(7);
+                        c7.setCellValue(rec != null && rec.getClockIn() != null ? rec.getOvertimeMinutes() / 60.0 : 0.0);
+                        c7.setCellStyle(rowStyle);
 
-                        row.createCell(7).setCellValue(
-                                rec != null && rec.getClockIn() != null
-                                        ? rec.getOvertimeMinutes() / 60.0
-                                        : 0.0
-                        );
-                        row.createCell(8).setCellValue(
-                                rec != null && rec.getProjectId() != null
-                                        ? Integer.parseInt(rec.getProjectId())
-                                        : 0
-                        );
+                        // プロジェクトコード
+                        Cell c8 = row.createCell(8);
+                        c8.setCellValue(rec != null && rec.getProjectCode() != null ? rec.getProjectCode() : "");
+                        c8.setCellStyle(rowStyle);
                        
                         if (rec != null && rec.getClockIn() != null) {
 
@@ -363,14 +446,29 @@ public class KinmuHyoExportServlet extends HttpServlet {
                     
                  // ===== 合計 =====
                     Row totalRow = sheet.createRow(rowNum++);
+                    totalRow.setHeightInPoints(20);
 
-                    totalRow.createCell(0).setCellValue("合計");
+                    Cell tc0 = totalRow.createCell(0);
+                    tc0.setCellValue("合計");
+                    tc0.setCellStyle(totalStyle);
 
-                    totalRow.createCell(5).setCellValue(totalBreak);
+                    for (int i = 1; i <= 4; i++) {
+                        totalRow.createCell(i).setCellStyle(totalStyle);
+                    }
 
-                    totalRow.createCell(6).setCellValue(totalWork);
+                    Cell tc5 = totalRow.createCell(5);
+                    tc5.setCellValue(totalBreak);
+                    tc5.setCellStyle(totalStyle);
 
-                    totalRow.createCell(7).setCellValue(totalOver);
+                    Cell tc6 = totalRow.createCell(6);
+                    tc6.setCellValue(totalWork);
+                    tc6.setCellStyle(totalStyle);
+
+                    Cell tc7 = totalRow.createCell(7);
+                    tc7.setCellValue(totalOver);
+                    tc7.setCellStyle(totalStyle);
+
+                    totalRow.createCell(8).setCellStyle(totalStyle);
 
                     // ===== 集計結果 =====
                     rowNum++;
