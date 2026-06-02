@@ -108,6 +108,9 @@
         <button class="btn btn-filter" onclick="filterNotAchieved()">❌ 未達成のみ</button>
         <button class="btn btn-filter" style="background:#e6a817;" onclick="filterAlert()">⚠️ 残少ない</button>
         <button class="btn btn-grant" onclick="grantConfirm()">➕ 今年度分を付与する</button>
+        <% if (user.getRoleId() == 1) { %>
+        <a href="<%= request.getContextPath() %>/YukyuGrantSettingServlet" class="btn" style="background:#6f42c1;color:white;text-decoration:none;">⚙️ 付与日数設定</a>
+        <% } %>
     </div>
 
     <!-- テーブル -->
