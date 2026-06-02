@@ -44,6 +44,8 @@ public class KintaiRecBean implements Serializable {
     private double totalNightHours;
     private double totalBreakHours;
     private String projectId;
+    private String projectCode;
+
     /**
      * デフォルトコンストラクタ
      */
@@ -58,6 +60,14 @@ public class KintaiRecBean implements Serializable {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public String getProjectCode() {
+        return projectCode;
+    }
+
+    public void setProjectCode(String projectCode) {
+        this.projectCode = projectCode;
     }
     public String getAttendanceStatus() {
     	     return attendanceStatus;
