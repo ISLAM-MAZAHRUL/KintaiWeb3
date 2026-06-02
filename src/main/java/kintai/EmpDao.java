@@ -25,7 +25,7 @@ public class EmpDao {
         List<EmpBean> empList = new ArrayList<>();
         // 新しいER図のempテーブルの列と結合するテーブルに合わせてSQLを修正
         String sql = "SELECT e.EMP_ID, e.EMP_NAME, e.DEPT_ID, e.POST_ID, e.ROLE_ID, e.EMP_TYPE, " +
-                     "e.PASS, e.MAIL, e.EMP_DATE, e.IS_ACTIVE, e.LEAVE_DATE, " +
+                     "e.PASS, e.MAIL, e.EMP_DATE, e.IS_ACTIVE, e.LEAVE_DATE, e.GRANTED_DAYS, " +
                      "d.DEPT_NAME, p.POST_NAME, r.ROLE_NAME " +
                      "FROM emp e " +
                      "LEFT JOIN dept d ON e.DEPT_ID = d.DEPT_ID " +
@@ -66,6 +66,7 @@ public class EmpDao {
                 emp.setDeptName(rs.getString("DEPT_NAME"));
                 emp.setPostName(rs.getString("POST_NAME"));
                 emp.setRoleName(rs.getString("ROLE_NAME"));
+                emp.setGrantedDays(rs.getInt("GRANTED_DAYS"));
                 empList.add(emp);
             }
             
@@ -466,6 +467,23 @@ public class EmpDao {
      * @param 
      * @return 正社員の社員情報。見つからない場合はnull
      */
+    /**
+     * 社員の付与日数を更新する
+     */
+    public boolean updateGrantedDays(String empId, int grantedDays) {
+        String sql = "UPDATE emp SET GRANTED_DAYS = ?, UPDATED_AT = NOW(), UPDATED_BY = 'admin' WHERE EMP_ID = ?";
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, grantedDays);
+            ps.setString(2, empId);
+            int count = ps.executeUpdate();
+            return count > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public List<EmpBean> findAllFullTimeEmployees() {
         List<EmpBean> list = new ArrayList<>();
 
