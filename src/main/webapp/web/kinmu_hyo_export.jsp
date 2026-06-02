@@ -21,7 +21,7 @@
     String endMonth = (String) request.getAttribute("endMonth");
     YearMonth ym = (YearMonth) request.getAttribute("ym");
 
-    // 一般ユーザー向けは /menu、管理者向けは /AdminMenuServlet です。
+    // সাধারণ ইউজারদের জন্য /menu এবং অ্যাডমিনের জন্য /AdminMenuServlet
     String menuPath = (user.getRoleId() == 1) ? "/AdminMenuServlet" : "/menu";
     String[] weekdays = {"日", "月", "火", "水", "木", "金", "土"};
 %>
@@ -199,20 +199,17 @@
     <table>
         <tr>
             <th>日付</th>
-            <th>出勤状況</th>
             <th>曜日</th>
+            <th>出勤状況</th>
             <th>始業</th>
             <th>終了</th>
             <th>休憩時間</th>
-			<th>勤務時間</th>
-			<th>残業時間</th>
-			<th>プロジェクトコード</th>
-			
-			
-		 	
+            <th>勤務時間</th>
+            <th>残業時間</th>
+            <th>プロジェクトコード</th>
         </tr>
         <%
-        // 日付テキストを安全にLocalDateに変換する
+        // ডেট টেক্সটকে নিরাপদে LocalDate-এ কনভার্ট করা হচ্ছে
         LocalDate startDate = YearMonth.parse(startMonth).atDay(1);
         LocalDate endDate = YearMonth.parse(endMonth).atEndOfMonth();
         
@@ -231,12 +228,14 @@
         <%= date.getMonthValue() %>/<%= String.format("%02d", date.getDayOfMonth()) %>
     </td>
 
+<td><%= weekday %></td>
+
     <td>
     <%
     String status = "";
 
-    if (rec != null && rec.getAttendanceType() != null) {
-        status = rec.getAttendanceType();
+    if (rec != null && rec.getAttendanceStatus() != null) {
+        status = rec.getAttendanceStatus();
     }
 
     // Auto status
@@ -269,10 +268,6 @@
         <%= status %>
     </span>
     </td>
-
-    
-
-<td><%= weekday %></td>
 
 <!-- 始業 -->
 <td>
@@ -314,8 +309,8 @@
 </td>
 <!-- プロジェクトコード -->
 <td>
-    <%= rec != null && rec.getProjectId() != null
-        ? rec.getProjectId()
+    <%= rec != null && rec.getProjectCode() != null
+        ? rec.getProjectCode()
         : "" %>
 </td>
 
@@ -396,10 +391,10 @@ function setLastYear() {
 function setThisYear() {
     const now = new Date();
     let year = now.getFullYear();
-    if ((now.getMonth() + 1) < 4) {
+    if ((now.getMonth() + 1) < 7) {
         year--;
     }
-    const start = new Date(year, 3, 1);
+    const start = new Date(year, 6, 1); // 7月始まり
     document.getElementById("startMonth").value = formatMonth(start);
     document.getElementById("endMonth").value = formatMonth(now);
 }
@@ -407,11 +402,11 @@ function setThisYear() {
 function setLastFiscalYear() {
     const now = new Date();
     let year = now.getFullYear();
-    if ((now.getMonth() + 1) < 4) {
+    if ((now.getMonth() + 1) < 7) {
         year--;
     }
-    const start = new Date(year - 1, 3, 1);
-    const end = new Date(year, 2, 1);
+    const start = new Date(year - 1, 6, 1); // 7月始まり
+    const end = new Date(year, 5, 1); // 6月終わり
     document.getElementById("startMonth").value = formatMonth(start);
     document.getElementById("endMonth").value = formatMonth(end);
 }
