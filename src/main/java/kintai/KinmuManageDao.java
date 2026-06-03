@@ -144,7 +144,7 @@ public class KinmuManageDao {
 	}
 	public List<KinmuManageBean.WorkAlloc> findMonthlyByAllEmpRange(String startMonth, String endMonth) {
 	    List<KinmuManageBean.WorkAlloc> list = new ArrayList<>();
-	    String sql = "SELECT w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, " +
+	    String sql = "SELECT w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, p.PROJECT_CODE, " +
 	            "DATE_FORMAT(w.WORK_DATE, '%Y%m') AS YM, " +
 	            "SUM(w.WORK_HOURS) AS TOTAL_HOURS " +
 	            "FROM work_alloc w " +
@@ -152,7 +152,7 @@ public class KinmuManageDao {
 	            "LEFT JOIN project p ON w.PROJECT_ID = p.PROJECT_ID " +
 	            "WHERE w.WORK_DATE BETWEEN ? AND ? " +
 	            "AND w.IS_DELETED = 0 " +
-	            "GROUP BY w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, YM " +
+	            "GROUP BY w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, p.PROJECT_CODE, YM " +
 	            "ORDER BY w.EMP_ID, YM, w.PROJECT_ID";
 
 	    try (Connection conn = db.getConnection();
@@ -170,6 +170,7 @@ public class KinmuManageDao {
 	                wa.setEmpName(rs.getString("EMP_NAME"));
 	                wa.setProjectId(rs.getInt("PROJECT_ID"));
 	                wa.setProjectName(rs.getString("PROJECT_NAME"));
+	                wa.setProjectCode(rs.getString("PROJECT_CODE"));
 	                wa.setWorkHours(rs.getDouble("TOTAL_HOURS"));
 	                wa.setYearMonth(rs.getString("YM"));
 	                list.add(wa);
@@ -182,7 +183,7 @@ public class KinmuManageDao {
 	}
 	public List<KinmuManageBean.WorkAlloc> findMonthlyByEmpRange(String empId, String startMonth, String endMonth) {
 	    List<KinmuManageBean.WorkAlloc> list = new ArrayList<>();
-	    String sql = "SELECT w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, " +
+	    String sql = "SELECT w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, p.PROJECT_CODE, " +
 	    		"DATE_FORMAT(w.WORK_DATE, '%Y%m') AS YM, " +
 	                 "SUM(w.WORK_HOURS) AS TOTAL_HOURS " +
 	                 "FROM work_alloc w " +
@@ -191,7 +192,7 @@ public class KinmuManageDao {
 	                 "WHERE w.EMP_ID = ? " +
 	                 "AND w.WORK_DATE BETWEEN ? AND ? " +
 	                 "AND w.IS_DELETED = 0 " +
-	                 "GROUP BY w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, YM " +
+	                 "GROUP BY w.EMP_ID, e.EMP_NAME, w.PROJECT_ID, p.PROJECT_NAME, p.PROJECT_CODE, YM " +
 	                 "ORDER BY DATE_FORMAT(w.WORK_DATE, '%Y%m'), w.PROJECT_ID";
 
 	    try (Connection conn = db.getConnection();
@@ -209,6 +210,7 @@ public class KinmuManageDao {
 	                wa.setEmpName(rs.getString("EMP_NAME"));
 	                wa.setProjectId(rs.getInt("PROJECT_ID"));
 	                wa.setProjectName(rs.getString("PROJECT_NAME"));
+	                wa.setProjectCode(rs.getString("PROJECT_CODE"));
 	                wa.setWorkHours(rs.getDouble("TOTAL_HOURS"));
 	                wa.setYearMonth(rs.getString("YM"));
 	                list.add(wa);
