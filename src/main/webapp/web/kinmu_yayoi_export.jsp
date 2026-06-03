@@ -184,7 +184,7 @@
             <label>クイック選択：</label>
             <button type="button" class="quick-btn" onclick="setThisMonth()">今月</button>
             <button type="button" class="quick-btn" onclick="setLastYear()">直近1年間</button>
-            <button type="button" class="quick-btn" onclick="setThisYear()">今年度（4月始）</button>
+            <button type="button" class="quick-btn" onclick="setThisYear()">今年度（7月始）</button>
             <button type="button" class="quick-btn" onclick="setLastFiscalYear()">前年度</button>
         </div>
         
@@ -250,6 +250,12 @@ List<MonthlySummaryBean> summaryList =
 %>
 
 <% if (empList != null && summaryList != null) { %>
+
+<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 16px;margin-bottom:16px;font-size:13px;">
+    <strong>対象期間：</strong><%= startMonth %> 〜 <%= endMonth %>
+    &nbsp;&nbsp;
+    <strong>対象社員数：</strong><%= empList.size() %>名
+</div>
 
 <h2>プレビュー結果</h2>
 
@@ -349,24 +355,16 @@ function setLastYear() {
 }
 
 function setThisYear() {
-
     const now = new Date();
-
     let year = now.getFullYear();
-
-    // 4月始まり
-    if (now.getMonth() + 1 < 4) {
+    // 7月始まり
+    if (now.getMonth() + 1 < 7) {
         year--;
     }
-
-    const start = new Date(year, 3, 1);
-    const end = new Date();
-
-    document.getElementsByName("startMonth")[0].value =
-        formatMonth(start);
-
-    document.getElementsByName("endMonth")[0].value =
-        formatMonth(end);
+    const start = new Date(year, 6, 1); // 7月
+    const end = new Date(year + 1, 5, 1); // 翌年6月
+    document.getElementsByName("startMonth")[0].value = formatMonth(start);
+    document.getElementsByName("endMonth")[0].value = formatMonth(end);
 }
 
 function setLastFiscalYear() {
