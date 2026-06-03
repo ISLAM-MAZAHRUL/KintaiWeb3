@@ -24,6 +24,7 @@ public class KinmuManageBean implements Serializable {
         private int allocationId;   // 割り当てID (ALLOCATION_ID)
         private String empId;       // 従業員番号 (EMP_ID) - 参照用（ただしwork_allocのPKの一部）
         private int projectId;      // プロジェクトID (PROJECT_ID)
+        private String projectCode; // プロジェクトコード (PROJECT_CODE)
         private LocalDate workDate; // 作業日 (WORK_DATE)
         private double workHours;   // 作業時間 (WORK_HOURS)
 
@@ -73,6 +74,14 @@ public class KinmuManageBean implements Serializable {
 
         public void setProjectId(int projectId) {
             this.projectId = projectId;
+        }
+
+        public String getProjectCode() {
+            return projectCode;
+        }
+
+        public void setProjectCode(String projectCode) {
+            this.projectCode = projectCode;
         }
 
         public LocalDate getWorkDate() {
