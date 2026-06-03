@@ -240,13 +240,11 @@
 
     // Auto status
     if (status == null || status.isEmpty()) {
-
-        if (isWeekend) {
-            status = "休み";
-        } else if (rec != null && rec.getClockIn() != null) {
-            status = "出勤";
+        if (rec != null && rec.getClockIn() != null) {
+            status = "出勤";  // 土日でも出勤データがあれば「出勤」
+        } else if (isWeekend) {
+            status = "休み";  // 土日でデータなし → 休み
         }
-
     }
 
     String badgeClass = "badge-normal";
